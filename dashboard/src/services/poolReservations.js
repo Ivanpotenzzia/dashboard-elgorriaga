@@ -42,11 +42,12 @@ export const PoolReservationService = {
 
             if (deleteError) throw deleteError;
 
-            // 2. Insertar nuevas reservas
+            // 2. Insertar nuevas reservas (con activo: true explícito)
             if (reservations.length > 0) {
+                const reservationsWithActive = reservations.map(r => ({ ...r, activo: true }));
                 const { data, error: insertError } = await supabase
                     .from(TABLE_NAME)
-                    .insert(reservations)
+                    .insert(reservationsWithActive)
                     .select();
 
                 if (insertError) throw insertError;
