@@ -153,6 +153,7 @@ export async function parsePoolReservationsFile(file) {
                 console.log('Total filas en la hoja:', jsonData.length);
 
                 // Buscar el encabezado
+                let headerRowIndex = -1;
                 let columnMapping = {
                     cliente: -1,
                     hora: -1,
