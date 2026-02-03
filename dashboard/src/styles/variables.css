@@ -1,0 +1,90 @@
+:root {
+    /* Brand Colors - Clean & Professional */
+    --color-primary: #1e293b;
+    /* Dark Slate (Sidebar) */
+    --color-primary-light: #334155;
+    --color-accent: #3b82f6;
+    /* Blue Action */
+    --color-accent-hover: #2563eb;
+
+    /* Backgrounds */
+    --color-bg-base: #f8fafc;
+    /* Very light gray/blue tint */
+    --color-bg-surface: #ffffff;
+    --color-bg-sidebar: #ffffff;
+
+    /* Text */
+    --color-text-main: #0f172a;
+    --color-text-muted: #64748b;
+    --color-text-inverse: #ffffff;
+
+    /* Status Colors (Soft Pastels) */
+    --color-success: #10b981;
+    --color-success-bg: #d1fae5;
+    --color-warning: #f59e0b;
+    --color-warning-bg: #fef3c7;
+    --color-danger: #ef4444;
+    --color-danger-bg: #fee2e2;
+
+    /* Borders */
+    --color-border: #e2e8f0;
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+
+    /* Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.75rem;
+    /* Softer corners */
+    --radius-lg: 1rem;
+    --radius-full: 9999px;
+
+    /* Shadows (Soft & Diffuse) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Utilities */
+.glass {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+}
+
+.text-gradient {
+    background: var(--color-text-main);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: var(--color-text-main);
+    /* Fallback */
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}

@@ -1,0 +1,25 @@
+.app-layout {
+    min-height: 100vh;
+    display: flex;
+    background-color: var(--color-bg-base);
+}
+
+.app-content {
+    flex: 1;
+    padding: var(--space-xl);
+    margin-left: 260px;
+    /* Sidebar Width */
+    max-width: 1600px;
+    width: calc(100% - 260px);
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+    .app-content {
+        margin-left: 0;
+        width: 100%;
+        padding-top: 80px;
+        /* Space for mobile header if we add one */
+    }
+}

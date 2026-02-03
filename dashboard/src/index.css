@@ -1,0 +1,19 @@
+@import './styles/variables.css';
+
+/* Global Reset & Base Styles handled in variables.css mostly */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+}
