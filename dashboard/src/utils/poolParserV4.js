@@ -241,15 +241,9 @@ export async function parsePoolReservationsFile(file) {
                         habitacion: columnMapping.hab !== -1 ? String(row[columnMapping.hab] || '').trim() : null,
                         cantidad: columnMapping.cant !== -1 ? parseInt(row[columnMapping.cant]) || 1 : 1,
                         tecnica: String(tecnicaVal || '').trim(),
-                        duracion_minutos: getDuracionFromTecnica(tecnicaVal),
-                        categoria: getCategoriaFromTecnica(tecnicaVal),
-                        // Campos adicionales si existen en el Excel
-                        telefono: columnMapping.tel !== -1 ? String(row[columnMapping.tel] || '').trim() : null,
-                        adultos: columnMapping.adultos !== -1 ? parseInt(row[columnMapping.adultos]) || 0 : 0,
-                        ninos: columnMapping.ninos !== -1 ? parseInt(row[columnMapping.ninos]) || 0 : 0,
-                        importe: columnMapping.importe !== -1 ? parseFloat(row[columnMapping.importe]) || 0 : 0,
-                        estado_pago: columnMapping.pago !== -1 ? String(row[columnMapping.pago] || '').trim() : null,
-                        detalles: columnMapping.detalles !== -1 ? String(row[columnMapping.detalles] || '').trim() : null
+                        duracion_minutos: getDuracionFromTecnica(tecnicaVal)
+                        // Nota: Los campos adultos, ninos, importe, estado_pago, detalles, telefono, categoria
+                        // no existen en la tabla de Supabase, por lo que no se incluyen aquí.
                     });
                 }
 
