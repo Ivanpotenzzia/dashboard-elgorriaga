@@ -258,9 +258,16 @@ export const Dashboard = () => {
             } else {
                 await ReservationService.create(formData);
             }
+
+            // 1. Cerrar modal primero para limpiar UI
             setModalOpen(false);
             setEditingReservation(null);
-            loadReservations();
+
+            // 2. Pequeño delay para permitir que React desmonte el modal antes de recargar la tabla pesada
+            setTimeout(() => {
+                loadReservations();
+            }, 50);
+
         } catch (err) {
             console.error('Error saving reservation:', err);
             alert(`Error al guardar: ${err.message || 'Ver consola'}`);
