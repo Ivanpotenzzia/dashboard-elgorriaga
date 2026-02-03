@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '../atoms/Button';
 import { Badge } from '../atoms/Badge';
-import { Trash2, Edit, ArrowLeft, X } from 'lucide-react';
+import { Trash2, Edit, ArrowLeft, X, Clock } from 'lucide-react';
 import './TimeSlotDetailModal.css';
 
 export const TimeSlotDetailModal = ({
@@ -27,9 +27,28 @@ export const TimeSlotDetailModal = ({
         return 'OTROS';
     };
 
-    const huespedes = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'HUESPEDES');
-    const externosExcel = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'EXTERNOS');
-    const imserso = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'IMSERSO');
+    // Ordenar por hora de inicio (las que empezaron antes primero)
+    const sortByHoraInicio = (a, b) => {
+        const horaA = a.hora_reserva || '99:99';
+        const horaB = b.hora_reserva || '99:99';
+        return horaA.localeCompare(horaB);
+    };
+
+    const huespedes = poolReservations
+        .filter(r => getCategoriaFromTecnica(r.tecnica) === 'HUESPEDES')
+        .sort(sortByHoraInicio);
+    const externosExcel = poolReservations
+        .filter(r => getCategoriaFromTecnica(r.tecnica) === 'EXTERNOS')
+        .sort(sortByHoraInicio);
+    const imserso = poolReservations
+        .filter(r => getCategoriaFromTecnica(r.tecnica) === 'IMSERSO')
+        .sort(sortByHoraInicio);
+
+    // Contar personas por categoría
+    const totalHuespedes = huespedes.reduce((sum, r) => sum + (r.cantidad || 0), 0);
+    const totalExternosExcel = externosExcel.reduce((sum, r) => sum + (r.cantidad || 0), 0);
+    const totalManuales = reservations.reduce((sum, r) => sum + (r.adultos || 0) + (r.ninos || 0), 0);
+    const totalImserso = imserso.reduce((sum, r) => sum + (r.cantidad || 0), 0);
 
     const hasHuespedes = huespedes.length > 0;
     const hasExternos = (reservations.length + externosExcel.length) > 0;
@@ -71,27 +90,28 @@ export const TimeSlotDetailModal = ({
                                 <div className="reservation-section">
                                     <h3 className="section-title">
                                         <Badge variant="primary">HUÉSPEDES (HOTEL)</Badge>
-                                        <span className="section-count">{huespedes.length} reserva{huespedes.length !== 1 ? 's' : ''}</span>
+                                        <span className="section-count">{huespedes.length} reserva{huespedes.length !== 1 ? 's' : ''} • {totalHuespedes} pax</span>
                                     </h3>
                                     <div className="reservations-table-wrapper">
                                         <table className="reservations-table pool-table">
                                             <thead>
                                                 <tr>
+                                                    <th>Hora Inicio</th>
                                                     <th>Cliente</th>
                                                     <th>Habitación</th>
-                                                    <th>Cantidad</th>
-                                                    <th>Técnica</th>
-                                                    <th>Duración</th>
+                                                    <th>Personas</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {huespedes.map((r, index) => (
-                                                    <tr key={r.id_reserva_piscina || `h-${index}`} className="pool-row">
+                                                    <tr key={r.id_reserva_piscina || `h-${index}`} className={`pool-row ${r.isCarryOver ? 'carry-over-row' : ''}`}>
+                                                        <td className="hora-cell">
+                                                            {r.hora_reserva?.substring(0, 5)}
+                                                            {r.isCarryOver && <span className="carry-over-badge" title="Continúa desde franja anterior">↩</span>}
+                                                        </td>
                                                         <td className="name-cell">{r.cliente}</td>
                                                         <td>{r.habitacion || '-'}</td>
                                                         <td>{r.cantidad}</td>
-                                                        <td className="tecnica-cell">{r.tecnica}</td>
-                                                        <td>{r.duracion_minutos} min</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -106,7 +126,7 @@ export const TimeSlotDetailModal = ({
                                     <h3 className="section-title">
                                         <Badge variant="success">EXTERNOS</Badge>
                                         <span className="section-count">
-                                            {reservations.length + externosExcel.length} reserva{(reservations.length + externosExcel.length) !== 1 ? 's' : ''}
+                                            {reservations.length + externosExcel.length} reserva{(reservations.length + externosExcel.length) !== 1 ? 's' : ''} • {totalExternosExcel + totalManuales} pax
                                         </span>
                                     </h3>
                                     <div className="reservations-table-wrapper">
@@ -152,15 +172,18 @@ export const TimeSlotDetailModal = ({
                                                 ))}
                                                 {/* Luego las de Excel marcadas como Externos */}
                                                 {externosExcel.map((r, index) => (
-                                                    <tr key={r.id_reserva_piscina || `ee-${index}`} className="pool-row">
-                                                        <td className="name-cell">{r.cliente}</td>
+                                                    <tr key={r.id_reserva_piscina || `ee-${index}`} className={`pool-row ${r.isCarryOver ? 'carry-over-row' : ''}`}>
+                                                        <td className="name-cell">
+                                                            {r.cliente}
+                                                            {r.isCarryOver && <span className="carry-over-badge" title="Continúa desde franja anterior"> ↩</span>}
+                                                        </td>
                                                         <td><Badge variant="ghost">EXCEL</Badge></td>
                                                         <td>{r.telefono || (r.habitacion ? `Hab: ${r.habitacion}` : '-')}</td>
-                                                        <td>{r.adultos || r.cantidad}</td>
+                                                        <td>{r.cantidad}</td>
                                                         <td>{r.ninos || 0}</td>
                                                         <td>{r.estado_pago || '-'}</td>
                                                         <td>{r.importe ? `${r.importe}€` : '-'}</td>
-                                                        <td className="tecnica-cell">{r.detalles || r.tecnica}</td>
+                                                        <td className="tecnica-cell">{r.hora_reserva?.substring(0, 5)}</td>
                                                         <td></td>
                                                     </tr>
                                                 ))}
@@ -175,7 +198,7 @@ export const TimeSlotDetailModal = ({
                                 <div className="reservation-section">
                                     <h3 className="section-title">
                                         <Badge variant="info">IMSERSO</Badge>
-                                        <span className="section-count">{imserso.length} reserva{imserso.length !== 1 ? 's' : ''}</span>
+                                        <span className="section-count">{imserso.length} reserva{imserso.length !== 1 ? 's' : ''} • {totalImserso} pax</span>
                                     </h3>
                                     <div className="reservations-table-wrapper">
                                         <table className="reservations-table pool-table">

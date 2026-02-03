@@ -271,19 +271,42 @@ export const Dashboard = () => {
                 active: (totalHuespedes + totalExternos + totalManuales + totalImserso) > 0,
                 max: MAX_CAPACITY,
                 reservations: extInSlot,
-                poolReservations: poolInSlot
+                poolReservations: poolInSlot.map(r => ({
+                    ...r,
+                    // Añadir flag para saber si es reserva que "continúa" de franja anterior
+                    isCarryOver: r.hora_reserva?.substring(0, 5) !== time
+                }))
             };
         });
     }, [externalReservations, poolReservations]);
 
+    // Calcular stats con Total Visitantes SIN duplicados
+    // (cada reserva cuenta 1 vez, basado en su hora de INICIO)
     const stats = useMemo(() => {
-        const totalPax = slotsData.reduce((acc, s) => acc + s.total, 0);
+        // Total visitantes: contar por hora de INICIO, no por ocupación
+        const totalPaxManuales = externalReservations.reduce((acc, r) =>
+            acc + (r.adultos || 0) + (r.ninos || 0), 0);
+        const totalPaxPool = poolReservations.reduce((acc, r) =>
+            acc + (r.cantidad || 0), 0);
+        const totalPax = totalPaxManuales + totalPaxPool;
+
+        // Hora pico: buscar la franja con mayor ocupación simultánea
         const maxSlot = slotsData.reduce((max, s) => s.total > max.total ? s : max, { total: 0, time: '-' });
+
+        // Alertas: franjas con alta demanda
         const highDemandCount = slotsData.filter(s => (s.total / s.max) >= 0.8).length;
+
+        // Ocupación promedio
         const avgOccupancy = Math.round(slotsData.reduce((acc, s) => acc + (s.total / s.max) * 100, 0) / slotsData.length);
 
-        return { totalPax, peakHour: maxSlot.time, alerts: highDemandCount, occupancyRate: avgOccupancy };
-    }, [slotsData]);
+        return {
+            totalPax,           // Personas únicas del día
+            peakHour: maxSlot.time,
+            peakPax: maxSlot.total,  // Máxima ocupación simultánea
+            alerts: highDemandCount,
+            occupancyRate: avgOccupancy
+        };
+    }, [slotsData, externalReservations, poolReservations]);
 
     const handleSlotClick = (time) => {
         const slot = slotsData.find(s => s.time === time);

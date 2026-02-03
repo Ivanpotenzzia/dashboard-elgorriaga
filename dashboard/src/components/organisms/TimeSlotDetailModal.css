@@ -217,3 +217,21 @@
     background-color: var(--color-danger-bg);
     color: var(--color-danger);
 }
+
+/* Carry-over: Reservas que continúan de franja anterior */
+.carry-over-row {
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+.carry-over-badge {
+    color: var(--color-primary);
+    font-size: 0.9em;
+    margin-left: 4px;
+    cursor: help;
+}
+
+.hora-cell {
+    font-weight: 600;
+    color: var(--color-text-main);
+    white-space: nowrap;
+}
