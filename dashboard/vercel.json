@@ -1,0 +1,12 @@
+{
+    "reqires": [
+        "dashboard"
+    ],
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
