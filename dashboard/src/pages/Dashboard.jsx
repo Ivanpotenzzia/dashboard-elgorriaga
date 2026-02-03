@@ -10,7 +10,7 @@ import { ReservationModal } from '../components/organisms/ReservationModal';
 import { TimeSlotDetailModal } from '../components/organisms/TimeSlotDetailModal';
 import { ReservationService } from '../services/reservations';
 import { PoolReservationService } from '../services/poolReservations';
-import { parsePoolReservationsFile } from '../utils/poolReservationParser';
+import { parsePoolReservationsFile } from '../utils/poolParserV4';
 import { Loader2, Calendar, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { MAX_CAPACITY } from '../utils/capacity';
 import './Dashboard.css';
