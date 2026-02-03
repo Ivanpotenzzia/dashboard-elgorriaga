@@ -14,6 +14,7 @@ export const PoolReservationService = {
      * @param {string} date - Format YYYY-MM-DD
      */
     async getByDate(date) {
+        console.log('[PoolReservationService] Consultando fecha:', date);
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .select('*')
@@ -21,6 +22,7 @@ export const PoolReservationService = {
             .eq('activo', true)
             .order('hora_reserva', { ascending: true });
 
+        console.log('[PoolReservationService] Resultado:', { data, error, count: data?.length });
         if (error) throw error;
         return data || [];
     },
