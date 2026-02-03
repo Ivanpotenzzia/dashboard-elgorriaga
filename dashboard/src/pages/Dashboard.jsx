@@ -34,16 +34,18 @@ const HeaderV2 = ({ date, setDate, onAdd, onImportExcel, onExportExcel, lastExce
                 setDate(format(d, 'yyyy-MM-dd'));
             }}><ChevronLeft size={20} /></button>
 
-            <div className="date-display date-picker-wrapper">
+            <div className="date-display">
                 <Calendar size={18} />
                 <span>{format(new Date(date), "EEEE, d MMMM", { locale: es })}</span>
-                <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="hidden-date-input"
-                />
             </div>
+
+            <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="date-input-visible"
+                title="Seleccionar fecha"
+            />
 
             <button className="date-nav-btn" onClick={() => {
                 const d = new Date(date); d.setDate(d.getDate() + 1);
