@@ -133,6 +133,15 @@ export async function parsePoolReservationsFile(file) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
+                console.log('--- EXCEL PARSER V2 (Fix headerRowIndex) ---');
+
+                // Declarar variables críticas al inicio del scope para evitar ReferenceError
+                let headerRowIndex = -1;
+                let columnMapping = {
+                    cliente: -1, hora: -1, hab: -1, cant: -1, tecnica: -1,
+                    tel: -1, adultos: -1, ninos: -1, importe: -1, pago: -1, detalles: -1
+                };
+
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
 
@@ -153,20 +162,6 @@ export async function parsePoolReservationsFile(file) {
                 console.log('Total filas en la hoja:', jsonData.length);
 
                 // Buscar el encabezado
-                let headerRowIndex = -1;
-                let columnMapping = {
-                    cliente: -1,
-                    hora: -1,
-                    hab: -1,
-                    cant: -1,
-                    tecnica: -1,
-                    tel: -1,
-                    adultos: -1,
-                    ninos: -1,
-                    importe: -1,
-                    pago: -1,
-                    detalles: -1
-                };
 
                 for (let i = 0; i < Math.min(50, jsonData.length); i++) {
                     const row = jsonData[i];
