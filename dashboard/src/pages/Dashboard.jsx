@@ -34,9 +34,15 @@ const HeaderV2 = ({ date, setDate, onAdd, onImportExcel, onExportExcel, lastExce
                 setDate(format(d, 'yyyy-MM-dd'));
             }}><ChevronLeft size={20} /></button>
 
-            <div className="date-display">
+            <div className="date-display date-picker-wrapper">
                 <Calendar size={18} />
                 <span>{format(new Date(date), "EEEE, d MMMM", { locale: es })}</span>
+                <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="hidden-date-input"
+                />
             </div>
 
             <button className="date-nav-btn" onClick={() => {
@@ -104,28 +110,64 @@ export const Dashboard = () => {
         if (!file) return;
         try {
             setLoading(true);
-            const { fecha, reservations } = await parsePoolReservationsFile(file);
+            const result = await parsePoolReservationsFile(file);
 
-            if (fecha !== date) {
-                const confirmChange = confirm(
-                    `El archivo contiene reservas para el día ${fecha}.\n` +
-                    `Actualmente estás viendo ${date}.\n\n` +
-                    `¿Deseas cambiar a la fecha del archivo?`
+            if (result.isMultiDate) {
+                // Archivo quincenal: múltiples fechas
+                const { fechas, reservationsByDate, totalReservations } = result;
+
+                const confirmImport = confirm(
+                    `📅 Archivo quincenal detectado\n\n` +
+                    `Se encontraron ${totalReservations} reservas para ${fechas.length} días:\n` +
+                    `${fechas.slice(0, 5).join(', ')}${fechas.length > 5 ? '...' : ''}\n\n` +
+                    `¿Deseas importar todas las fechas?`
                 );
 
-                if (confirmChange) {
-                    setDate(fecha);
+                if (!confirmImport) {
+                    setLoading(false);
+                    e.target.value = '';
+                    return;
                 }
-            }
 
-            await PoolReservationService.bulkReplace(fecha, reservations);
+                await PoolReservationService.bulkReplaceMultiple(reservationsByDate);
 
-            if (fecha === date) {
+                // Navegar a la primera fecha del archivo
+                const primeraFecha = fechas[0];
+                setDate(primeraFecha);
                 await loadPoolReservations();
-            }
 
-            const totalPax = reservations.reduce((sum, r) => sum + (r.cantidad || 0), 0);
-            alert(`✅ Importadas ${reservations.length} reservas (${totalPax} personas) para el ${fecha}`);
+                alert(
+                    `✅ Importación quincenal completada\n\n` +
+                    `• ${fechas.length} días procesados\n` +
+                    `• ${totalReservations} reservas importadas\n\n` +
+                    `Se ha navegado al ${primeraFecha}`
+                );
+
+            } else {
+                // Archivo diario: fecha única (lógica original)
+                const { fecha, reservations } = result;
+
+                if (fecha !== date) {
+                    const confirmChange = confirm(
+                        `El archivo contiene reservas para el día ${fecha}.\n` +
+                        `Actualmente estás viendo ${date}.\n\n` +
+                        `¿Deseas cambiar a la fecha del archivo?`
+                    );
+
+                    if (confirmChange) {
+                        setDate(fecha);
+                    }
+                }
+
+                await PoolReservationService.bulkReplace(fecha, reservations);
+
+                if (fecha === date) {
+                    await loadPoolReservations();
+                }
+
+                const totalPax = reservations.reduce((sum, r) => sum + (r.cantidad || 0), 0);
+                alert(`✅ Importadas ${reservations.length} reservas (${totalPax} personas) para el ${fecha}`);
+            }
         } catch (err) {
             console.error(err);
             alert(`Error al importar archivo Excel: ${err.message}`);
@@ -184,10 +226,29 @@ export const Dashboard = () => {
         return 'OTROS';
     };
 
+    // Función para verificar si una reserva está activa en una franja horaria
+    // Una reserva de 60 min ocupa 2 franjas (ej: 10:00 ocupa 10:00 y 10:30)
+    const isReservationInSlot = (reserva, slotTime) => {
+        const horaReserva = reserva.hora_reserva?.substring(0, 5);
+        if (!horaReserva) return false;
+
+        const duracion = reserva.duracion_minutos || 60;
+
+        // Convertir horas a minutos para comparar
+        const [rH, rM] = horaReserva.split(':').map(Number);
+        const [sH, sM] = slotTime.split(':').map(Number);
+        const reservaMinutos = rH * 60 + rM;
+        const slotMinutos = sH * 60 + sM;
+
+        // La reserva está activa si la franja cae dentro del rango [inicio, inicio+duracion)
+        return slotMinutos >= reservaMinutos && slotMinutos < (reservaMinutos + duracion);
+    };
+
     const slotsData = useMemo(() => {
         return TIME_SLOTS.map(time => {
-            const extInSlot = externalReservations.filter(r => r.hora_reserva?.substring(0, 5) === time);
-            const poolInSlot = poolReservations.filter(r => r.hora_reserva?.substring(0, 5) === time);
+            // Filtrar reservas que ESTÁN ACTIVAS en esta franja (no solo las que empiezan aquí)
+            const extInSlot = externalReservations.filter(r => isReservationInSlot(r, time));
+            const poolInSlot = poolReservations.filter(r => isReservationInSlot(r, time));
 
             // Calcular categoría dinámicamente desde el campo tecnica
             const huespedesInSlot = poolInSlot.filter(r => getCategoriaFromTecnica(r.tecnica) === 'HUESPEDES');

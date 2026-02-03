@@ -68,6 +68,23 @@ export const PoolReservationService = {
     },
 
     /**
+     * Reemplazar reservas de múltiples fechas (para archivos quincenales)
+     * @param {Object} reservationsByDate - { "2026-02-13": [...], "2026-02-14": [...] }
+     * @param {string} user - Usuario que realiza la acción
+     */
+    async bulkReplaceMultiple(reservationsByDate, user = 'system') {
+        const results = {};
+        const fechas = Object.keys(reservationsByDate);
+
+        for (const date of fechas) {
+            const reservations = reservationsByDate[date];
+            results[date] = await this.bulkReplace(date, reservations, user);
+        }
+
+        return results;
+    },
+
+    /**
      * Obtener la hora de la última carga para una fecha
      * @param {string} date - Format YYYY-MM-DD
      * @returns {string|null} Timestamp de última carga

@@ -1,6 +1,7 @@
 /**
- * Pool Reservation Parser
- * Parsea el archivo MULTISELECCION.xlsx con datos de reservas de piscina
+ * Pool Reservation Parser V5
+ * Parsea archivos MULTISELECCION.xlsx con datos de reservas de piscina
+ * Soporta archivos diarios y quincenales (múltiples fechas)
  */
 
 import * as XLSX from 'xlsx';
@@ -17,35 +18,6 @@ function getDuracionFromTecnica(tecnica) {
     }
     return 60;
 }
-
-/**
- * Categoriza la reserva según el campo Técnica
- * - HUESPEDES: "RECORRIDO TERMAL ALOJADOS 60´"
- * - EXTERNOS: "RECORRIDO TERMAL NO ALOJADOS 60´"
- * - IMSERSO: "IMS PISCINA TERMAL 25´"
- */
-function getCategoriaFromTecnica(tecnica) {
-    if (!tecnica) return 'OTROS';
-    const tecnicaUpper = String(tecnica).toUpperCase();
-
-    // Primero verificar NO ALOJADOS (debe ir antes que ALOJADOS)
-    if (tecnicaUpper.includes('NO ALOJADOS')) {
-        return 'EXTERNOS';
-    }
-
-    // Luego ALOJADOS
-    if (tecnicaUpper.includes('ALOJADOS')) {
-        return 'HUESPEDES';
-    }
-
-    // IMSERSO
-    if (tecnicaUpper.includes('IMS') || tecnicaUpper.includes('IMSERSO')) {
-        return 'IMSERSO';
-    }
-
-    return 'OTROS';
-}
-
 
 /**
  * Normaliza el formato de hora a HH:MM
@@ -120,7 +92,79 @@ function normalizeFecha(fecha) {
 }
 
 /**
+ * Detecta el tipo de archivo: diario o quincenal
+ */
+function detectFileType(jsonData) {
+    let dateMarkers = 0;
+    for (let i = 0; i < Math.min(100, jsonData.length); i++) {
+        const row = jsonData[i];
+        if (row && row[0] === 'Día :') {
+            dateMarkers++;
+            if (dateMarkers > 1) return 'QUINCENAL';
+        }
+    }
+    return 'DIARIO';
+}
+
+/**
+ * Busca el índice de columna para los campos de encabezado
+ */
+function findColumnMapping(row) {
+    const mapping = {
+        cliente: -1, hora: -1, hab: -1, cant: -1, tecnica: -1,
+        tel: -1, adultos: -1, ninos: -1, importe: -1, pago: -1, detalles: -1
+    };
+
+    if (!row || !Array.isArray(row)) return { mapping, found: false };
+
+    row.forEach((cell, j) => {
+        if (cell === null || cell === undefined) return;
+
+        const cellStr = String(cell).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        if (cellStr.includes('cliente') || cellStr.includes('nombre')) { mapping.cliente = j; }
+        else if (cellStr.includes('hora')) { mapping.hora = j; }
+        else if (cellStr.includes('hab')) { mapping.hab = j; }
+        else if (cellStr.includes('cant')) { mapping.cant = j; }
+        else if (cellStr.includes('tecnica')) { mapping.tecnica = j; }
+        else if (cellStr.includes('tel')) { mapping.tel = j; }
+    });
+
+    return { mapping, found: mapping.cliente !== -1 && mapping.hora !== -1 };
+}
+
+/**
+ * Parsea una fila de datos y devuelve un objeto de reserva
+ */
+function parseDataRow(row, columnMapping, currentDate) {
+    const clienteVal = row[columnMapping.cliente];
+    const horaRaw = row[columnMapping.hora];
+
+    if (!clienteVal || horaRaw === null || horaRaw === undefined) {
+        return null;
+    }
+
+    const horaNormal = normalizeHora(horaRaw);
+    if (!horaNormal) {
+        return null;
+    }
+
+    const tecnicaVal = columnMapping.tecnica !== -1 ? row[columnMapping.tecnica] : 'PISCINA TERMAL';
+
+    return {
+        fecha_reserva: currentDate,
+        hora_reserva: horaNormal,
+        cliente: String(clienteVal).trim(),
+        habitacion: columnMapping.hab !== -1 ? String(row[columnMapping.hab] || '').trim() : null,
+        cantidad: columnMapping.cant !== -1 ? parseInt(row[columnMapping.cant]) || 1 : 1,
+        tecnica: String(tecnicaVal || '').trim(),
+        duracion_minutos: getDuracionFromTecnica(tecnicaVal)
+    };
+}
+
+/**
  * Parsea el archivo MULTISELECCION.xlsx
+ * Detecta automáticamente si es diario o quincenal
  */
 export async function parsePoolReservationsFile(file) {
     console.log('Iniciando parseo de archivo de piscina:', file.name);
@@ -133,142 +177,140 @@ export async function parsePoolReservationsFile(file) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                console.log('--- EXCEL PARSER V3 (03-Feb-2026 11:35) ---');
-
-                // Declarar variables críticas al inicio del scope para evitar ReferenceError
-                let headerRowIndex = -1;
-                let columnMapping = {
-                    cliente: -1, hora: -1, hab: -1, cant: -1, tecnica: -1,
-                    tel: -1, adultos: -1, ninos: -1, importe: -1, pago: -1, detalles: -1
-                };
+                console.log('--- EXCEL PARSER V5 (Multi-día) ---');
 
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-
-                // Extraer fecha de celda B6
-                const fechaCell = worksheet['B6'];
-                if (!fechaCell) {
-                    throw new Error('No se encontró fecha en la celda B6 del Excel.');
-                }
-
-                const fechaReserva = normalizeFecha(fechaCell.v);
-                if (!fechaReserva) {
-                    throw new Error(`Fomato de fecha inválido en B6: ${fechaCell.v}`);
-                }
-
-                console.log('Fecha de reserva extraída:', fechaReserva);
-
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
                 console.log('Total filas en la hoja:', jsonData.length);
 
-                // Buscar el encabezado
+                const fileType = detectFileType(jsonData);
+                console.log('Tipo de archivo detectado:', fileType);
 
-                for (let i = 0; i < Math.min(50, jsonData.length); i++) {
-                    const row = jsonData[i];
-                    if (!row || !Array.isArray(row)) continue;
+                if (fileType === 'QUINCENAL') {
+                    // Parseo multi-día: buscar marcadores "Día :" y agrupar por fecha
+                    const reservationsByDate = {};
+                    let currentDate = null;
+                    let columnMapping = null;
+                    let totalReservations = 0;
 
-                    let rowMarkers = 0;
-                    row.forEach((cell, j) => {
-                        if (cell === null || cell === undefined) return;
+                    for (let i = 0; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || !Array.isArray(row)) continue;
 
-                        const cellStr = String(cell).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                        // Detectar cambio de fecha con "Día :"
+                        if (row[0] === 'Día :' && row[1]) {
+                            const newDate = normalizeFecha(row[1]);
+                            if (newDate) {
+                                currentDate = newDate;
+                                columnMapping = null; // Resetear para buscar nuevo encabezado
+                                if (!reservationsByDate[currentDate]) {
+                                    reservationsByDate[currentDate] = [];
+                                }
+                                console.log(`📅 Nueva fecha detectada: ${currentDate}`);
+                            }
+                            continue;
+                        }
 
-                        if (cellStr.includes('cliente') || cellStr.includes('nombre')) { columnMapping.cliente = j; rowMarkers++; }
-                        else if (cellStr.includes('hora')) { columnMapping.hora = j; rowMarkers++; }
-                        else if (cellStr.includes('hab')) { columnMapping.hab = j; rowMarkers++; }
-                        else if (cellStr.includes('cant')) { columnMapping.cant = j; rowMarkers++; }
-                        else if (cellStr.includes('tecnica')) { columnMapping.tecnica = j; rowMarkers++; }
-                        else if (cellStr.includes('tel')) { columnMapping.tel = j; }
-                        else if (cellStr.includes('adult')) { columnMapping.adultos = j; }
-                        else if (cellStr.includes('nin')) { columnMapping.ninos = j; }
-                        else if (cellStr.includes('import')) { columnMapping.importe = j; }
-                        else if (cellStr.includes('pago') || cellStr.includes('estado')) { columnMapping.pago = j; }
-                        else if (cellStr.includes('detall') || cellStr.includes('observ')) { columnMapping.detalles = j; }
+                        // Buscar encabezado si no lo tenemos
+                        if (!columnMapping) {
+                            const { mapping, found } = findColumnMapping(row);
+                            if (found) {
+                                columnMapping = mapping;
+                                continue;
+                            }
+                        }
+
+                        // Parsear fila de datos si tenemos fecha y encabezado
+                        if (currentDate && columnMapping) {
+                            const reservation = parseDataRow(row, columnMapping, currentDate);
+                            if (reservation) {
+                                reservationsByDate[currentDate].push(reservation);
+                                totalReservations++;
+                            }
+                        }
+                    }
+
+                    const fechas = Object.keys(reservationsByDate);
+                    console.log(`Parseo quincenal finalizado:`);
+                    console.log(`- Fechas encontradas: ${fechas.length}`);
+                    console.log(`- Total reservas: ${totalReservations}`);
+                    fechas.forEach(f => {
+                        console.log(`  · ${f}: ${reservationsByDate[f].length} reservas`);
                     });
 
-                    // Si encontramos al menos Cliente y Hora, asumimos que es el encabezado
-                    if (columnMapping.cliente !== -1 && columnMapping.hora !== -1) {
-                        headerRowIndex = i;
-                        console.log(`Encabezado encontrado en fila ${i}:`, columnMapping);
-                        break;
+                    if (totalReservations === 0) {
+                        throw new Error('No se encontraron reservas válidas en el archivo quincenal.');
                     }
-                }
 
-                if (headerRowIndex === -1) {
-                    throw new Error('No se pudo encontrar el encabezado con las columnas "Cliente" y "Hora" en las primeras 50 filas.');
-                }
+                    resolve({
+                        isMultiDate: true,
+                        fechas,
+                        reservationsByDate,
+                        totalReservations
+                    });
 
-                const reservations = [];
-                let filasConDatos = 0;
-                let filasSaltadas = 0;
-                const primerasFilasSaltadas = [];
+                } else {
+                    // Parseo diario (lógica original)
+                    let headerRowIndex = -1;
+                    let columnMapping = {
+                        cliente: -1, hora: -1, hab: -1, cant: -1, tecnica: -1
+                    };
 
-                // Procesar TODAS las filas del archivo, incluso si hay secciones separadas
-                for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (!row || !Array.isArray(row)) continue;
+                    // Extraer fecha de celda B6
+                    const fechaCell = worksheet['B6'];
+                    if (!fechaCell) {
+                        throw new Error('No se encontró fecha en la celda B6 del Excel.');
+                    }
 
-                    const clienteVal = row[columnMapping.cliente];
-                    const horaRaw = row[columnMapping.hora];
+                    const fechaReserva = normalizeFecha(fechaCell.v);
+                    if (!fechaReserva) {
+                        throw new Error(`Formato de fecha inválido en B6: ${fechaCell.v}`);
+                    }
 
-                    // Si la fila no tiene cliente Y hora, saltarla pero CONTINUAR con el resto
-                    // Esto permite procesar múltiples secciones (Piscina Termal + Piscina IMSERSO)
-                    if (!clienteVal || horaRaw === null || horaRaw === undefined) {
-                        filasSaltadas++;
-                        if (primerasFilasSaltadas.length < 5) {
-                            primerasFilasSaltadas.push({ fila: i, motivo: 'Cliente o Hora vacíos', cliente: clienteVal, hora: horaRaw });
+                    console.log('Fecha de reserva extraída:', fechaReserva);
+
+                    // Buscar el encabezado
+                    for (let i = 0; i < Math.min(50, jsonData.length); i++) {
+                        const { mapping, found } = findColumnMapping(jsonData[i]);
+                        if (found) {
+                            headerRowIndex = i;
+                            columnMapping = mapping;
+                            console.log(`Encabezado encontrado en fila ${i}:`, columnMapping);
+                            break;
                         }
-                        continue; // IMPORTANTE: continue (no break) para seguir procesando
                     }
 
-                    filasConDatos++;
-                    const horaNormal = normalizeHora(horaRaw);
-                    if (!horaNormal) {
-                        console.warn(`Hora inválida en fila ${i}:`, horaRaw);
-                        filasSaltadas++; // También se salta si la hora es inválida
-                        if (primerasFilasSaltadas.length < 5) {
-                            primerasFilasSaltadas.push({ fila: i, motivo: 'Hora inválida', hora: horaRaw });
+                    if (headerRowIndex === -1) {
+                        throw new Error('No se pudo encontrar el encabezado con las columnas "Cliente" y "Hora".');
+                    }
+
+                    const reservations = [];
+
+                    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || !Array.isArray(row)) continue;
+
+                        const reservation = parseDataRow(row, columnMapping, fechaReserva);
+                        if (reservation) {
+                            reservations.push(reservation);
                         }
-                        continue;
                     }
 
-                    const tecnicaVal = columnMapping.tecnica !== -1 ? row[columnMapping.tecnica] : 'PISCINA TERMAL';
+                    console.log(`Parseo diario finalizado:`);
+                    console.log(`- Reservas procesadas: ${reservations.length}`);
 
-                    reservations.push({
-                        fecha_reserva: fechaReserva,
-                        hora_reserva: horaNormal,
-                        cliente: String(clienteVal).trim(),
-                        habitacion: columnMapping.hab !== -1 ? String(row[columnMapping.hab] || '').trim() : null,
-                        cantidad: columnMapping.cant !== -1 ? parseInt(row[columnMapping.cant]) || 1 : 1,
-                        tecnica: String(tecnicaVal || '').trim(),
-                        duracion_minutos: getDuracionFromTecnica(tecnicaVal)
-                        // Nota: Los campos adultos, ninos, importe, estado_pago, detalles, telefono, categoria
-                        // no existen en la tabla de Supabase, por lo que no se incluyen aquí.
+                    if (reservations.length === 0) {
+                        throw new Error('No se encontraron filas de reservas válidas.');
+                    }
+
+                    resolve({
+                        isMultiDate: false,
+                        fecha: fechaReserva,
+                        reservations
                     });
                 }
-
-                console.log(`Parseo finalizado:`);
-                console.log(`- Encabezado en fila: ${headerRowIndex}`);
-                console.log(`- Filas revisadas: ${jsonData.length - headerRowIndex - 1}`);
-                console.log(`- Filas con datos válidos: ${filasConDatos}`);
-                console.log(`- Filas saltadas: ${filasSaltadas}`);
-                console.log(`- Reservas procesadas: ${reservations.length}`);
-                if (primerasFilasSaltadas.length > 0) {
-                    console.log(`- Primeras filas saltadas:`, primerasFilasSaltadas);
-                }
-                if (reservations.length > 0) {
-                    console.log(`- Primera reserva procesada: Fila ~${headerRowIndex + 1}, ${reservations[0].cliente} a las ${reservations[0].hora_reserva}`);
-                    console.log(`- Última reserva procesada: ${reservations[reservations.length - 1].cliente} a las ${reservations[reservations.length - 1].hora_reserva}`);
-                }
-
-                if (reservations.length === 0) {
-                    throw new Error('No se encontraron filas de reservas válidas después del encabezado.');
-                }
-
-                resolve({
-                    fecha: fechaReserva,
-                    reservations
-                });
 
             } catch (error) {
                 console.error('Error en parsePoolReservationsFile:', error);

@@ -94,6 +94,31 @@
     justify-content: center;
 }
 
+/* Date Picker Clickeable */
+.date-picker-wrapper {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.date-picker-wrapper:hover {
+    background: var(--color-bg-base);
+    border-color: var(--color-primary);
+}
+
+.hidden-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
 .divider-v {
     width: 1px;
     height: 24px;
