@@ -174,14 +174,25 @@ export const Dashboard = () => {
         }
     };
 
+    // Función auxiliar para obtener categoría según técnica
+    const getCategoriaFromTecnica = (tecnica) => {
+        if (!tecnica) return 'OTROS';
+        const t = String(tecnica).toUpperCase();
+        if (t.includes('NO ALOJADOS')) return 'EXTERNOS';
+        if (t.includes('ALOJADOS')) return 'HUESPEDES';
+        if (t.includes('IMS') || t.includes('IMSERSO')) return 'IMSERSO';
+        return 'OTROS';
+    };
+
     const slotsData = useMemo(() => {
         return TIME_SLOTS.map(time => {
             const extInSlot = externalReservations.filter(r => r.hora_reserva?.substring(0, 5) === time);
             const poolInSlot = poolReservations.filter(r => r.hora_reserva?.substring(0, 5) === time);
 
-            const huespedesInSlot = poolInSlot.filter(r => r.categoria === 'HUESPEDES');
-            const externosExcelInSlot = poolInSlot.filter(r => r.categoria === 'EXTERNOS');
-            const imsersoInSlot = poolInSlot.filter(r => r.categoria === 'IMSERSO');
+            // Calcular categoría dinámicamente desde el campo tecnica
+            const huespedesInSlot = poolInSlot.filter(r => getCategoriaFromTecnica(r.tecnica) === 'HUESPEDES');
+            const externosExcelInSlot = poolInSlot.filter(r => getCategoriaFromTecnica(r.tecnica) === 'EXTERNOS');
+            const imsersoInSlot = poolInSlot.filter(r => getCategoriaFromTecnica(r.tecnica) === 'IMSERSO');
 
             const totalManuales = extInSlot.reduce((s, r) => s + (r.adultos || 0) + (r.ninos || 0), 0);
             const totalHuespedes = huespedesInSlot.reduce((s, r) => s + (r.cantidad || 0), 0);
