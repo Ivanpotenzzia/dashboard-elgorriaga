@@ -133,7 +133,7 @@ export async function parsePoolReservationsFile(file) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                console.log('--- EXCEL PARSER V2 (Fix headerRowIndex) ---');
+                console.log('--- EXCEL PARSER V3 (03-Feb-2026 11:35) ---');
 
                 // Declarar variables críticas al inicio del scope para evitar ReferenceError
                 let headerRowIndex = -1;
