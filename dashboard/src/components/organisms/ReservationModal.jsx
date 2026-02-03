@@ -20,7 +20,8 @@ const INITIAL_STATE = {
     comensales_cena: 0,
     importe: '',
     estado_pago: 'Pendiente',
-    detalles_br: ''
+    detalles_br: '',
+    comentarios_restaurante: ''
 };
 
 const TIME_SLOTS = Array.from({ length: 24 }, (_, i) => {
@@ -54,6 +55,7 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                     importe: initialData.importe_pago || '',
                     estado_pago: initialData.estado_pago || 'Pendiente',
                     detalles_br: initialData.detalles_br || '',
+                    comentarios_restaurante: initialData.comentarios_restaurante || '',
                     id_reserva: initialData.id_reserva // Keep ID for update
                 });
             } else {
@@ -124,7 +126,8 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                 comensales_cena: formData.servicio_cena ? parseInt(formData.comensales_cena) || 1 : null,
                 importe_pago: formData.importe ? parseFloat(formData.importe) : 0.00,
                 estado_pago: formData.estado_pago || 'Pendiente',
-                detalles_br: formData.detalles_br || null
+                detalles_br: formData.detalles_br || null,
+                comentarios_restaurante: (formData.servicio_comida || formData.servicio_cena) ? formData.comentarios_restaurante || null : null
             };
 
             // Include ID if editing
@@ -269,6 +272,20 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                         />
                     )}
                 </div>
+
+                {/* Campo de comentarios de restaurante (solo si hay comida o cena) */}
+                {(formData.servicio_comida || formData.servicio_cena) && (
+                    <div className="input-wrapper restaurant-notes" style={{ marginTop: '1rem' }}>
+                        <label htmlFor="comentarios_restaurante">📝 Observaciones Restaurante</label>
+                        <textarea
+                            id="comentarios_restaurante"
+                            value={formData.comentarios_restaurante}
+                            onChange={handleChange}
+                            placeholder="Intolerancias, alergias, preferencias de mesa, etc."
+                            rows={3}
+                        />
+                    </div>
+                )}
 
                 <hr className="divider" />
 

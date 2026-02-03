@@ -68,7 +68,13 @@ const HeaderV2 = ({ date, setDate, onAdd, onImportExcel, onExportExcel, lastExce
 );
 
 export const Dashboard = () => {
-    const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    // Leer fecha inicial de localStorage si existe (para sincronización con Restaurante)
+    const getInitialDate = () => {
+        const savedDate = localStorage.getItem('selectedDate');
+        return savedDate || format(new Date(), 'yyyy-MM-dd');
+    };
+
+    const [date, setDate] = useState(getInitialDate);
     const [externalReservations, setExternalReservations] = useState([]); // Reservas manuales
     const [poolReservations, setPoolReservations] = useState([]); // Todas las del Excel
     const [lastExcelUpdate, setLastExcelUpdate] = useState(null);
@@ -79,6 +85,11 @@ export const Dashboard = () => {
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [editingReservation, setEditingReservation] = useState(null);
+
+    // Sincronizar fecha con localStorage cuando cambia
+    useEffect(() => {
+        localStorage.setItem('selectedDate', date);
+    }, [date]);
 
     // Load Data
     useEffect(() => {
@@ -376,6 +387,7 @@ export const Dashboard = () => {
             <SummaryCards
                 totalPax={stats.totalPax}
                 peakHour={stats.peakHour}
+                peakPax={stats.peakPax}
                 alerts={stats.alerts}
                 occupancyRate={stats.occupancyRate}
             />

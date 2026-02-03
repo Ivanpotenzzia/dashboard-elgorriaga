@@ -16,21 +16,21 @@ const StatCard = ({ icon: Icon, value, label, subtext, color }) => (
     </Card>
 );
 
-export const SummaryCards = ({ totalPax, peakHour, alerts, occupancyRate }) => {
+export const SummaryCards = ({ totalPax, peakHour, peakPax, alerts, occupancyRate }) => {
     return (
         <div className="summary-grid">
             <StatCard
                 icon={Users}
                 value={totalPax}
-                label="Total Visitantes"
-                subtext="Reservas hoy"
+                label="Total Reservas"
+                subtext="Personas hoy"
                 color="var(--color-accent)"
             />
             <StatCard
                 icon={Clock}
                 value={peakHour}
                 label="Hora Pico"
-                subtext="0 pax max"
+                subtext={`${peakPax || 0} pax máx`}
                 color="#8b5cf6"
             />
             <StatCard
@@ -44,7 +44,7 @@ export const SummaryCards = ({ totalPax, peakHour, alerts, occupancyRate }) => {
                 icon={TrendingUp}
                 value={`${occupancyRate}%`}
                 label="Ocupación Media"
-                subtext="0 pax/hora"
+                subtext="del aforo"
                 color="var(--color-success)"
             />
         </div>

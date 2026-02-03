@@ -292,3 +292,55 @@
     background-color: var(--color-border);
     margin: 0 var(--space-sm);
 }
+
+/* Input de fecha visible */
+.date-input-visible {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    height: 36px;
+    padding: 0 var(--space-sm);
+    font-size: 0.875rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    color: var(--color-text-main);
+}
+
+.date-input-visible:hover {
+    border-color: var(--color-primary);
+}
+
+.date-input-visible:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Badge de origen */
+.origen-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.origen-badge.circuito {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--color-primary);
+}
+
+.origen-badge.directo {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-success);
+}
+
+.empty-message {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: var(--space-xl) !important;
+    font-style: italic;
+}

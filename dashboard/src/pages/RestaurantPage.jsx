@@ -167,11 +167,23 @@ const RestaurantReservationModal = ({ isOpen, onClose, onSave, initialData, defa
 };
 
 export const RestaurantPage = () => {
-    const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-    const [reservations, setReservations] = useState([]);
+    // Leer fecha inicial de localStorage (sincronizado con Dashboard)
+    const getInitialDate = () => {
+        const savedDate = localStorage.getItem('selectedDate');
+        return savedDate || format(new Date(), 'yyyy-MM-dd');
+    };
+
+    const [date, setDate] = useState(getInitialDate);
+    const [reservations, setReservations] = useState([]); // Reservas directas de restaurante
+    const [circuitReservations, setCircuitReservations] = useState([]); // Reservas de piscina con comida/cena
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingReservation, setEditingReservation] = useState(null);
+
+    // Sincronizar fecha con localStorage
+    useEffect(() => {
+        localStorage.setItem('selectedDate', date);
+    }, [date]);
 
     useEffect(() => {
         loadData();
@@ -180,8 +192,20 @@ export const RestaurantPage = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = await RestaurantReservationService.getByDate(date);
-            setReservations(data);
+            // Cargar reservas directas de restaurante
+            const directData = await RestaurantReservationService.getByDate(date);
+            setReservations(directData);
+
+            // Cargar reservas de piscina con servicio comida/cena
+            const { data: circuitData, error } = await supabase
+                .from('reservas')
+                .select('*')
+                .eq('fecha_reserva', date)
+                .eq('activo', true)
+                .or('servicio_comida.eq.true,servicio_cena.eq.true');
+
+            if (error) throw error;
+            setCircuitReservations(circuitData || []);
         } catch (err) {
             console.error('Error loading restaurant reservations:', err);
         } finally {
@@ -221,9 +245,36 @@ export const RestaurantPage = () => {
         setModalOpen(true);
     };
 
-    // Separar por tipo de servicio
-    const lunchReservations = reservations.filter(r => r.tipo_servicio === 'COMIDA');
-    const dinnerReservations = reservations.filter(r => r.tipo_servicio === 'CENA');
+    // Combinar y separar por tipo de servicio
+    // Directas de restaurante
+    const directLunch = reservations.filter(r => r.tipo_servicio === 'COMIDA');
+    const directDinner = reservations.filter(r => r.tipo_servicio === 'CENA');
+
+    // De circuito (piscina)
+    const circuitLunch = circuitReservations.filter(r => r.servicio_comida);
+    const circuitDinner = circuitReservations.filter(r => r.servicio_cena);
+
+    // Combinar
+    const lunchReservations = [
+        ...directLunch.map(r => ({ ...r, origen: 'RESTAURANTE' })),
+        ...circuitLunch.map(r => ({
+            ...r,
+            origen: 'CIRCUITO',
+            nombre_cliente: r.nombre_cliente,
+            comensales: r.comensales_comida || 1,
+            comentarios: r.comentarios_restaurante || r.detalles_br
+        }))
+    ];
+    const dinnerReservations = [
+        ...directDinner.map(r => ({ ...r, origen: 'RESTAURANTE' })),
+        ...circuitDinner.map(r => ({
+            ...r,
+            origen: 'CIRCUITO',
+            nombre_cliente: r.nombre_cliente,
+            comensales: r.comensales_cena || 1,
+            comentarios: r.comentarios_restaurante || r.detalles_br
+        }))
+    ];
 
     const lunchTotal = lunchReservations.reduce((sum, r) => sum + (r.comensales || 0), 0);
     const dinnerTotal = dinnerReservations.reduce((sum, r) => sum + (r.comensales || 0), 0);
@@ -233,15 +284,25 @@ export const RestaurantPage = () => {
             <thead>
                 <tr>
                     <th>Nombre</th>
+                    <th>Origen</th>
                     <th>Comensales</th>
                     <th>Comentarios / Intolerancias</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                {reservations.map(r => (
-                    <tr key={r.id_reserva_restaurante}>
+                {reservations.length === 0 ? (
+                    <tr>
+                        <td colSpan="5" className="empty-message">{emptyMessage}</td>
+                    </tr>
+                ) : reservations.map((r, idx) => (
+                    <tr key={r.id_reserva_restaurante || r.id_reserva || `res-${idx}`}>
                         <td className="name-cell">{r.nombre_cliente}</td>
+                        <td className="origen-cell">
+                            <span className={`origen-badge ${r.origen === 'CIRCUITO' ? 'circuito' : 'directo'}`}>
+                                {r.origen === 'CIRCUITO' ? '🏊 Circuito' : '🍽️ Directo'}
+                            </span>
+                        </td>
                         <td className="pax-cell">{r.comensales} pax</td>
                         <td className="comments-cell">
                             {r.comentarios ? (
@@ -251,18 +312,19 @@ export const RestaurantPage = () => {
                             )}
                         </td>
                         <td className="actions-cell">
-                            <button className="icon-btn" onClick={() => handleEdit(r)} title="Editar">
-                                <Edit size={16} />
-                            </button>
-                            <button className="icon-btn danger" onClick={() => handleDelete(r.id_reserva_restaurante)} title="Eliminar">
-                                <Trash2 size={16} />
-                            </button>
+                            {r.origen !== 'CIRCUITO' && (
+                                <>
+                                    <button className="icon-btn" onClick={() => handleEdit(r)} title="Editar">
+                                        <Edit size={16} />
+                                    </button>
+                                    <button className="icon-btn danger" onClick={() => handleDelete(r.id_reserva_restaurante)} title="Eliminar">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </>
+                            )}
                         </td>
                     </tr>
                 ))}
-                {reservations.length === 0 && (
-                    <tr><td colSpan="4" className="empty-row">{emptyMessage}</td></tr>
-                )}
             </tbody>
         </table>
     );
@@ -281,16 +343,18 @@ export const RestaurantPage = () => {
                         setDate(format(d, 'yyyy-MM-dd'));
                     }}><ChevronLeft size={20} /></button>
 
-                    <div className="date-display date-picker-wrapper">
+                    <div className="date-display">
                         <Calendar size={18} />
                         <span>{format(new Date(date), "EEEE, d MMMM", { locale: es })}</span>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="hidden-date-input"
-                        />
                     </div>
+
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="date-input-visible"
+                        title="Seleccionar fecha"
+                    />
 
                     <button className="date-nav-btn" onClick={() => {
                         const d = new Date(date); d.setDate(d.getDate() + 1);
