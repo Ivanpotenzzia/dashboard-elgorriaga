@@ -17,9 +17,19 @@ export const TimeSlotDetailModal = ({
 }) => {
     if (!isOpen) return null;
 
-    const huespedes = poolReservations.filter(r => r.categoria === 'HUESPEDES');
-    const externosExcel = poolReservations.filter(r => r.categoria === 'EXTERNOS');
-    const imserso = poolReservations.filter(r => r.categoria === 'IMSERSO');
+    // Función auxiliar para obtener categoría según técnica
+    const getCategoriaFromTecnica = (tecnica) => {
+        if (!tecnica) return 'OTROS';
+        const t = String(tecnica).toUpperCase();
+        if (t.includes('NO ALOJADOS')) return 'EXTERNOS';
+        if (t.includes('ALOJADOS')) return 'HUESPEDES';
+        if (t.includes('IMS') || t.includes('IMSERSO')) return 'IMSERSO';
+        return 'OTROS';
+    };
+
+    const huespedes = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'HUESPEDES');
+    const externosExcel = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'EXTERNOS');
+    const imserso = poolReservations.filter(r => getCategoriaFromTecnica(r.tecnica) === 'IMSERSO');
 
     const hasHuespedes = huespedes.length > 0;
     const hasExternos = (reservations.length + externosExcel.length) > 0;
