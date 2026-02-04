@@ -23,7 +23,7 @@ export const SummaryCards = ({ totalPax, peakHour, peakPax, alerts, occupancyRat
                 icon={Users}
                 value={totalPax}
                 label="Total Reservas"
-                subtext="Personas hoy"
+                subtext="Reservas hoy"
                 color="var(--color-accent)"
             />
             <StatCard

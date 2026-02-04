@@ -165,7 +165,11 @@
 
 /* Modal de Restaurante */
 .restaurant-modal {
-    max-width: 500px;
+    max-width: 600px !important;
+    /* Aumentado de 500px para más espacio */
+    width: 95% !important;
+    background: white;
+    z-index: 2000;
 }
 
 .restaurant-modal .form-group {
@@ -183,6 +187,14 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);
+}
+
+.select-input,
+.textarea-input,
+.restaurant-modal input[type="text"],
+.restaurant-modal input[type="number"] {
+    box-sizing: border-box;
+    /* Previene desbordamiento */
 }
 
 .select-input {

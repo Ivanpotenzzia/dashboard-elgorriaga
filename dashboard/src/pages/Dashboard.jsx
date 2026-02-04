@@ -294,12 +294,8 @@ export const Dashboard = () => {
     // Calcular stats con Total Visitantes SIN duplicados
     // (cada reserva cuenta 1 vez, basado en su hora de INICIO)
     const stats = useMemo(() => {
-        // Total visitantes: contar por hora de INICIO, no por ocupación
-        const totalPaxManuales = externalReservations.reduce((acc, r) =>
-            acc + (r.adultos || 0) + (r.ninos || 0), 0);
-        const totalPaxPool = poolReservations.reduce((acc, r) =>
-            acc + (r.cantidad || 0), 0);
-        const totalPax = totalPaxManuales + totalPaxPool;
+        // Total Reservas: Contar número de reservas (filas), no de personas
+        const totalReservations = externalReservations.length + poolReservations.length;
 
         // Hora pico: buscar la franja con mayor ocupación simultánea
         const maxSlot = slotsData.reduce((max, s) => s.total > max.total ? s : max, { total: 0, time: '-' });
@@ -311,7 +307,7 @@ export const Dashboard = () => {
         const avgOccupancy = Math.round(slotsData.reduce((acc, s) => acc + (s.total / s.max) * 100, 0) / slotsData.length);
 
         return {
-            totalPax,           // Personas únicas del día
+            totalPax: totalReservations,  // Ahora representa el Nº de Reservas
             peakHour: maxSlot.time,
             peakPax: maxSlot.total,  // Máxima ocupación simultánea
             alerts: highDemandCount,

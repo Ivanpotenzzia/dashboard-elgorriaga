@@ -197,15 +197,22 @@ export const RestaurantPage = () => {
             setReservations(directData);
 
             // Cargar reservas de piscina con servicio comida/cena
+            // Usamos filtro explícito para asegurar que el OR no interfiera con el AND de fecha/activo
+            // Cargar reservas de piscina con servicio comida/cena
+            // ESTRATEGIA ROBUSTA: Descargar todas las del día y filtrar en JS para evitar errores de sintaxis OR
+            console.log('Fetching pool reservations for date:', date);
             const { data: circuitData, error } = await supabase
-                .from('reservas')
+                .from('reservas_externas')
                 .select('*')
                 .eq('fecha_reserva', date)
-                .eq('activo', true)
-                .or('servicio_comida.eq.true,servicio_cena.eq.true');
+                .eq('activo', true);
 
             if (error) throw error;
-            setCircuitReservations(circuitData || []);
+
+            // Filtrar en memoria las que tienen comida o cena
+            const poolWithFood = (circuitData || []).filter(r => r.servicio_comida === true || r.servicio_cena === true);
+            console.log('Pool reservations filtered:', poolWithFood);
+            setCircuitReservations(poolWithFood);
         } catch (err) {
             console.error('Error loading restaurant reservations:', err);
         } finally {
