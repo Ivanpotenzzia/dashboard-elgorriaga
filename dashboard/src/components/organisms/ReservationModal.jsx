@@ -21,7 +21,8 @@ const INITIAL_STATE = {
     importe: '',
     estado_pago: 'Pendiente',
     detalles_br: '',
-    comentarios_restaurante: ''
+    comentarios_restaurante: '',
+    tratamientos_cabina: false
 };
 
 const TIME_SLOTS = Array.from({ length: 24 }, (_, i) => {
@@ -56,6 +57,7 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                     estado_pago: initialData.estado_pago || 'Pendiente',
                     detalles_br: initialData.detalles_br || '',
                     comentarios_restaurante: initialData.comentarios_restaurante || '',
+                    tratamientos_cabina: initialData.tratamientos_cabina || false,
                     id_reserva: initialData.id_reserva // Keep ID for update
                 });
             } else {
@@ -127,7 +129,8 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                 importe_pago: formData.importe ? parseFloat(formData.importe) : 0.00,
                 estado_pago: formData.estado_pago || 'Pendiente',
                 detalles_br: formData.detalles_br || null,
-                comentarios_restaurante: (formData.servicio_comida || formData.servicio_cena) ? formData.comentarios_restaurante || null : null
+                comentarios_restaurante: (formData.servicio_comida || formData.servicio_cena) ? formData.comentarios_restaurante || null : null,
+                tratamientos_cabina: formData.tratamientos_cabina
             };
 
             // Include ID if editing
@@ -220,6 +223,18 @@ export const ReservationModal = ({ isOpen, onClose, onSave, currentOccupancy = 0
                         onChange={handleChange}
                         className="flex-1"
                     />
+                </div>
+
+                <div className="input-wrapper" style={{ marginTop: '0.5rem' }}>
+                    <label className="checkbox-label" style={{ fontWeight: '500' }}>
+                        <input
+                            type="checkbox"
+                            id="tratamientos_cabina"
+                            checked={formData.tratamientos_cabina}
+                            onChange={handleChange}
+                        />
+                        💆‍♀️ Tratamientos en cabina
+                    </label>
                 </div>
 
                 <hr className="divider" />

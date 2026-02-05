@@ -138,6 +138,7 @@ export const TimeSlotDetailModal = ({
                                                     <th>Teléfono / Hab.</th>
                                                     <th>Adultos</th>
                                                     <th>Niños</th>
+                                                    <th>Cabina</th>
                                                     <th>Estado Pago</th>
                                                     <th>Importe</th>
                                                     <th>Detalles / Técnica</th>
@@ -153,6 +154,13 @@ export const TimeSlotDetailModal = ({
                                                         <td>{r.telefono || '-'}</td>
                                                         <td>{r.adultos}</td>
                                                         <td>{r.ninos}</td>
+                                                        <td>
+                                                            {r.tratamientos_cabina ? (
+                                                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Sí</span>
+                                                            ) : (
+                                                                <span style={{ color: 'var(--color-text-muted)' }}>No</span>
+                                                            )}
+                                                        </td>
                                                         <td>
                                                             <Badge variant={r.estado_pago === 'Pagado' ? 'success' : (r.estado_pago === 'Bono Regalo' ? 'info' : 'warning')}>
                                                                 {r.estado_pago || 'Pendiente'}
@@ -181,6 +189,7 @@ export const TimeSlotDetailModal = ({
                                                         <td>{r.telefono || (r.habitacion ? `Hab: ${r.habitacion}` : '-')}</td>
                                                         <td>{r.cantidad}</td>
                                                         <td>{r.ninos || 0}</td>
+                                                        <td>-</td>
                                                         <td>{r.estado_pago || '-'}</td>
                                                         <td>{r.importe ? `${r.importe}€` : '-'}</td>
                                                         <td className="tecnica-cell">{r.hora_reserva?.substring(0, 5)}</td>
